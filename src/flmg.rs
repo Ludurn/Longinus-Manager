@@ -1,3 +1,4 @@
+#[derive(Default)]
 
 struct SearchInfo {
     previous_search: String
@@ -5,12 +6,12 @@ struct SearchInfo {
 
 impl SearchInfo {
 
-    fn new(previous_search: String) -> SearchInfo {
-        SearchInfo { previous_search }
+    fn previous_search(&self) -> &str {
+        &self.previous_search
     }
 
-    fn get_search_info(&self) -> String {
-        self.previous_search.clone()
+    fn set_previous_search(&mut self, search: String) {
+        self.previous_search = search;
     }
 }
 
@@ -19,32 +20,53 @@ pub mod file_explorer {
     use std::io;
     use std::path::Path;
 
-    use crate::flmg::SearchInfo;
+    use flmg::SearchInfo;
     
-    pub fn call_file_explorer() -> () {
+    pub fn call_file_explorer() {
 
         let mut input: String = String::new();
+        let mut srch_info = SearchInfo::default();
 
         println!("How to navegate:\nType \"cd\" <name> to access directories\nType the file name to display the action menu");
 
         let mut exit: bool = false;
-        let directory: SearchInfo = SearchInfo::new("c:".to_string());
+        srch_info.set_previous_search("c:".to_string());
 
-        search_dir(&directory.get_search_info());
+        search_dir(srch_info.previous_search());
+        println!("\nYou're in: {}", srch_info.previous_search());
 
         while exit == false {
             input.clear();
             
             io::stdin().read_line(&mut input).unwrap();
 
-            if input.trim() != String::from("exit") {
+            if input.trim() != String::from("q") {
 
-                if &input[..2] == "cd" {
 
+                if input[..2].trim() == "cd" {
+
+                    let input_path: &str = &format!("{}/{}", srch_info.previous_search(), input[3..].trim());
+       
+                    if search_dir(input_path) {
+
+                        if input[3..].trim() == ".." {
+
+
+                        }
+                    }
+                    
+                    
+
+                    println!("\nYou're in: {}", srch_info.previous_search());
 
                 }
 
-                search_dir(&input);
+                if input[..3].trim() == "dir" {
+
+                    search_dir(srch_info.previous_search());
+
+                    println!("\nYou're in: {}", srch_info.previous_search());
+                }
 
                 continue;
             }
@@ -55,7 +77,7 @@ pub mod file_explorer {
     }
 
 
-    fn search_dir(input_path: &String) -> () {
+    fn search_dir(input_path: &str) -> bool {
 
         println!("\n");
         let path: &Path = Path::new(input_path);
@@ -63,15 +85,32 @@ pub mod file_explorer {
         match path.read_dir() {
 
             Ok(entries) => {
+
                 for entry in entries {
                     if let Ok(entry) = entry {
-                        println!("{}", entry.path().to_string_lossy().replace(input_path, ""));
+
+                        let fl_tag = match entry.file_type() {
+
+                            Ok(file_type) if file_type.is_dir() => "<DIR>",
+                            _ => "     ",
+
+                        };
+
+                        println!(
+                            "{}  -  {}",
+                            fl_tag,
+                            entry.path().to_string_lossy().replace(input_path, "")
+                        );
                     }
                 }
-                println!("\nType \"exit\" to leave the explorer");
+
+                println!("\nType \"q\" to quit the explorer");
+
+                true
             }
             Err(_e) => {
                 println!("Failed to read directory: file name, directory name or volume label syntax is incorrect.");
+                false
             }
 
         }
