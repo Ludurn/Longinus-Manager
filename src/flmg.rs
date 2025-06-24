@@ -1,3 +1,5 @@
+use std::{rc::Rc, cell::RefCell};
+
 #[derive(Default)]
 
 struct SearchInfo {
@@ -17,23 +19,25 @@ impl SearchInfo {
 
 pub mod file_explorer {
 
+    use super::*; // super::* => import everthing that's pub available, in this case the struct and impl
     use std::io;
     use std::path::Path;
-
-    use flmg::SearchInfo;
     
     pub fn call_file_explorer() {
 
         let mut input: String = String::new();
-        let mut srch_info = SearchInfo::default();
+        let srch_info = Rc::new(RefCell::new(SearchInfo::default()));
 
         println!("How to navegate:\nType \"cd\" <name> to access directories\nType the file name to display the action menu");
 
         let mut exit: bool = false;
-        srch_info.set_previous_search("c:".to_string());
 
-        search_dir(srch_info.previous_search());
-        println!("\nYou're in: {}", srch_info.previous_search());
+        {
+            let mut cntrl_srch_info = srch_info.borrow_mut();
+            cntrl_srch_info.set_previous_search(String::from("c:"));
+        }
+        let default_path = srch_info.borrow().previous_search().to_string();
+        search_dir(srch_info.clone(), &default_path);
 
         while exit == false {
             input.clear();
@@ -45,27 +49,38 @@ pub mod file_explorer {
 
                 if input[..2].trim() == "cd" {
 
-                    let input_path: &str = &format!("{}/{}", srch_info.previous_search(), input[3..].trim());
-       
-                    if search_dir(input_path) {
+                    let input_path: &str = &format!("{}/{}", srch_info.borrow().previous_search(), input[3..].trim());
+                    let mut adjusted_path: &str = input_path;
 
-                        if input[3..].trim() == ".." {
+                    if input_path.ends_with("..") {
 
+                        let mut slash_count: u8 = 0;
+                        let mut cut_off = 0;
 
+                        for (i, c) in input_path.trim().char_indices().rev() {
+                            if c == '/' {
+                                slash_count += 1;
+
+                                if slash_count == 2 {
+                                    cut_off = i;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if slash_count >= 2 {
+                            adjusted_path = &input_path[..cut_off]
                         }
                     }
-                    
-                    
-
-                    println!("\nYou're in: {}", srch_info.previous_search());
+       
+                    search_dir(srch_info.clone(), &adjusted_path);
 
                 }
 
                 if input[..3].trim() == "dir" {
 
-                    search_dir(srch_info.previous_search());
+                    search_dir(srch_info.clone(), srch_info.borrow().previous_search());
 
-                    println!("\nYou're in: {}", srch_info.previous_search());
                 }
 
                 continue;
@@ -77,14 +92,19 @@ pub mod file_explorer {
     }
 
 
-    fn search_dir(input_path: &str) -> bool {
-
-        println!("\n");
+    fn search_dir(srch_info: Rc<RefCell<SearchInfo>>, input_path: &str) {
+        
         let path: &Path = Path::new(input_path);
+        
 
         match path.read_dir() {
 
             Ok(entries) => {
+
+                {
+                    let mut cntrl_srch_info = srch_info.borrow_mut();
+                    cntrl_srch_info.set_previous_search(path.to_string_lossy().to_string());
+                }
 
                 for entry in entries {
                     if let Ok(entry) = entry {
@@ -105,12 +125,10 @@ pub mod file_explorer {
                 }
 
                 println!("\nType \"q\" to quit the explorer");
-
-                true
+                println!("\nYou're in: {}", srch_info.borrow().previous_search());
             }
             Err(_e) => {
-                println!("Failed to read directory: file name, directory name or volume label syntax is incorrect.");
-                false
+                println!("\nFailed to read directory: file name, directory name or volume label syntax is incorrect.");
             }
 
         }
