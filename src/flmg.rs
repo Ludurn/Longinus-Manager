@@ -71,6 +71,9 @@ pub mod file_explorer {
                         if slash_count >= 2 {
                             adjusted_path = &input_path[..cut_off]
                         }
+                    } else if input_path.ends_with('.') {
+
+                        adjusted_path = &input_path[0..input_path.char_indices().count()-2];
                     }
        
                     search_dir(srch_info.clone(), &adjusted_path);
@@ -100,6 +103,8 @@ pub mod file_explorer {
         match path.read_dir() {
 
             Ok(entries) => {
+
+                println!("\n");
 
                 {
                     let mut cntrl_srch_info = srch_info.borrow_mut();
