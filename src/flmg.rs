@@ -28,7 +28,7 @@ pub mod file_explorer {
         let mut input: String = String::new();
         let srch_info = Rc::new(RefCell::new(SearchInfo::default()));
 
-        println!("How to navegate:\nType \"cd\" <name> to access directories\nType the file name to display the action menu");
+        println!("\nHow to navigate:\nType \"cd\" <name> to access directories\nType \"dir\" to display the elements of the current directory\nType \"q\" to quit\n");
 
         let mut exit: bool = false;
 
@@ -116,10 +116,17 @@ pub mod file_explorer {
 
                         };
 
+                        let mut fl_name: &str = &entry.path().to_string_lossy().replace(input_path, "");
+
+                        if fl_name.starts_with('\\') {
+
+                            fl_name = &fl_name[1..];
+                        }
+
                         println!(
                             "{}  -  {}",
                             fl_tag,
-                            entry.path().to_string_lossy().replace(input_path, "")
+                            fl_name
                         );
                     }
                 }
