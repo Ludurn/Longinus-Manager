@@ -49,8 +49,8 @@ pub mod file_explorer {
 
                 if input[..2].trim() == "cd" {
 
-                    let input_path: &str = &format!("{}/{}", srch_info.borrow().previous_search(), input[3..].trim());
-                    let mut adjusted_path: &str = input_path;
+                    let input_path: String = format!("{}/{}", srch_info.borrow().previous_search(), input[3..].trim());
+                    let mut adjusted_path: &str = &input_path;
 
                     if input_path.ends_with("..") {
 
@@ -58,7 +58,7 @@ pub mod file_explorer {
                         let mut cut_off = 0;
 
                         for (i, c) in input_path.trim().char_indices().rev() {
-                            if c == '/' {
+                            if matches!(c, '/') {
                                 slash_count += 1;
 
                                 if slash_count == 2 {
