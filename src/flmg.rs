@@ -46,10 +46,12 @@ pub mod file_explorer {
 
             if input.trim() != String::from("q") {
 
+                let prev_search: String = srch_info.borrow().previous_search().to_string();
+
 
                 if input[..2].trim() == "cd" {
 
-                    let input_path: String = format!("{}/{}", srch_info.borrow().previous_search(), input[3..].trim());
+                    let input_path: String = format!("{}/{}", prev_search, input[3..].trim());
                     let mut adjusted_path: &str = &input_path;
 
                     if input_path.ends_with("..") {
@@ -82,7 +84,7 @@ pub mod file_explorer {
 
                 if input[..3].trim() == "dir" {
 
-                    search_dir(srch_info.clone(), srch_info.borrow().previous_search());
+                    search_dir(srch_info.clone(), &prev_search);
 
                 }
 
