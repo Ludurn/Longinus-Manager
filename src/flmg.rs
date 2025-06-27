@@ -17,6 +17,23 @@ impl SearchInfo {
     }
 }
 
+#[derive(Default)]
+
+struct FileName {
+    file_name: String
+}
+
+impl FileName {
+
+    fn file_name(&self) -> &str {
+        &self.file_name
+    }
+
+    fn set_file_name(&mut self, name: String) {
+        self.file_name = name;
+    }
+}
+
 pub mod file_explorer {
 
     use super::*; // super::* => import everthing that's pub available, in this case the struct and impl
@@ -155,21 +172,55 @@ pub mod file_explorer {
 
 pub mod file_editor {
 
+    use super::*;
     // std::io::prelude::* => add traits like: Read, Write and BufRead, its purpose is just to import these modules mentioned
     use std::io::{self, prelude::*, BufWriter}; 
     use std::fs::{self, File};
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::env;
 
     pub fn call_file_editor() -> () {
 
         let mut input: String = String::new();
+        let fl_name = Rc::new(RefCell::new(FileName::default()));
 
-        println!("\nInsert:\n1 => to write\n2 => to read\nq => to quit\n");
+        println!("\nType the file path to access the action menu or \"q\" to quit");
+
+        let mut exit: bool = false;
 
         loop {
 
+            if input.trim() != String::from("q") {
+                input.clear();
+
+                io::stdin().read_line(&mut input).unwrap();
+
+                // Converts the input to a proper path
+                let path: &Path = Path::new(input.trim());
+
+                match file_exists(path) {
+                    Ok(_c) => break,
+                    Err(e) => {
+                        println!("Failed to access file: {}", e);
+                        continue;
+                    }
+                }
+            }
+
+            break exit = true;
+        }
+
+
+
+        loop {
+
+            if (exit) {
+                break;
+            }
+
             input.clear();
+
+            println!("\nInsert:\n1 => to write\n2 => to read\nq => to quit\n");
 
             io::stdin().read_line(&mut input).unwrap();
 
@@ -232,11 +283,32 @@ pub mod file_editor {
         path.pop(); // Removes the exec name
         path.push(file_name);
 
-        
-
         let txt: String = fs::read_to_string(path)?;
 
         Ok(txt)
+    }
+
+    fn file_exists(path: &Path) -> Result<&str, &str> {
+
+        if !path.exists() {
+            return Err("Path does not exist");
+        }
+
+        //canonicalize() => normalizes the path
+        let absolute_path = match path.canonicalize() {
+            Ok(p) => p,
+            Err(_) => return Err("Path absolute unresolved")
+        };
+
+        if !path.is_file() {
+            return Err("Path is not a file");
+        }
+
+        match File::open(&absolute_path) {
+            Ok(_) => Ok("File is accessible"),
+            Err(_) => Err("File did not open")
+        }
+        
     }
     
 }
